@@ -4,14 +4,23 @@ import sympy as sp
 import copy
 from scipy.signal import convolve
 
+from funciones import H
+from funciones import posicion
+from funciones import posicion_k
+from funciones import H_k
+from scipy.optimize import least_squares
+
+import Algoritmos as alg
+import Graficador as graf
+import funciones as f
 
 ############################## GENERO ANGULOS ###############################################
 
 ############ THETA 1 ############
 # Parámetros
-a = 0.5  # Amplitud
-b = 1  # Desplazamiento vertical
-omega = 0.5*np.pi  # Frecuencia angular (en este caso, una vuelta completa cada unidad de tiempo)
+a = 1  # Amplitud
+b = 0  # Desplazamiento vertical
+omega = 1*np.pi  # Frecuencia angular (en este caso, una vuelta completa cada unidad de tiempo)
 # Vector de tiempo
 t = np.linspace(0, 4, 400)  # Desde 0 hasta 10 con 400 puntos
 phi = np.pi / 4  # Desplazamiento en omega t (en radianes)
@@ -19,31 +28,29 @@ phi = np.pi / 4  # Desplazamiento en omega t (en radianes)
 theta1 = a * np.cos(omega * t + phi) + b
 theta1_copia=copy.copy(theta1)
 
-
 ############ THETA 2 ############
 # Parámetros
 a = 1 # Amplitud
 b = 0  # Desplazamiento vertical
-omega = 2*np.pi  # Frecuencia angular (en este caso, una vuelta completa cada unidad de tiempo)
+omega = 1*np.pi  # Frecuencia angular (en este caso, una vuelta completa cada unidad de tiempo)
 # Vector de tiempo
 t = np.linspace(0, 4, 400)  # Desde 0 hasta 10 con 400 puntos
 # Función de ángulo
-phi = np.pi / 2  # Desplazamiento en omega t (en radianes)
+phi = np.pi / 4  # Desplazamiento en omega t (en radianes)
 theta2 = a * a * np.cos(omega * t + phi) + b
 theta2_copia=copy.copy(theta2)
 
 ############ THETA 3 ############
 # Parámetros
-a = 0.5  # Amplitud
-b = 0 # Desplazamiento vertical
-omega = 2*np.pi  # Frecuencia angular (en este caso, una vuelta completa cada unidad de tiempo)
+a = 2  # Amplitud
+b = 1 # Desplazamiento vertical
+omega = 1*np.pi  # Frecuencia angular (en este caso, una vuelta completa cada unidad de tiempo)
 # Vector de tiempo
 t = np.linspace(0, 4, 400)  # Desde 0 hasta 10 con 400 puntos
 # Función de ángulo
 phi = np.pi / 4  # Desplazamiento en omega t (en radianes)
 theta3 = a * np.cos(omega * t + phi) + b
 theta3_copia=copy.copy(theta3)
-
 
 ################################## DEFINICION DE VALORES #############################
 
@@ -81,7 +88,6 @@ tiempo = [frame / fps for frame in frames]
 
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
-
 
 ###################### FUNCIONES #############################################################
 
@@ -337,6 +343,7 @@ x_con_ruido=ruido_x+posiciones_x
 y_con_ruido=ruido_y+posiciones_y
 
 
+
 ##################################################################################################
 theta1_p=np.diff(theta1_copia) / 10E-2
 theta1_p = np.insert(theta1_p, 0, theta1_p[0])
@@ -350,128 +357,105 @@ theta3_p = np.insert(theta3_p, 0, theta3_p[0])
 
 
 
-from sympy import symbols, sin, cos, rad, pretty, pprint, Matrix
-import sympy as sp
+####################################################################################################################
 
-theta_1, theta_2, theta_3 = symbols('θ1 θ2 θ3', real=True)
+#ECUACIONES DE POSICION DEL MARCADOR
 
-
-
-A = [[sin(theta_1), cos(theta_1)], 
-     [-cos(theta_1), sin(theta_1)]]
-
-B = [[-sin(theta_2 ), cos(theta_2)], 
-     [cos(theta_2), sin(theta_2)]]
-
-C = [[-sin(theta_3), cos(theta_3)], 
-     [cos(theta_3), sin(theta_3)]]
+######################################### PENDULO 1 ######################################
 
 
-################## PENDULO 1 #######################
+from sympy import symbols, sin, cos, Matrix
 
-r0_p1=[0,0]
-rp_l=np.array([1,0])
+θ1, θ2, θ3, k1x, k1y, k2x, k2y, k3x, k3y = symbols('θ1 θ2 θ3 k1x k1y k2x k2y k3x k3y')
 
-#MARCADOR 1
-rp_l_m1=np.array([0.3,-l_m])
-rp_m1=np.dot(A, rp_l_m1)
-[x_m1, y_m1] = [r0_p1[0]+rp_m1[0], r0_p1[1]+rp_m1[1]] 
-############
 
-#MARCADOR 2
+A = [[sin(θ1), cos(θ1)], 
+     [-cos(θ1), sin(θ1)]]
 
-rp_l_m2=np.array([0.7,-l_m])
-rp_m2=np.dot(A, rp_l_m2)
-[x_m2, y_m2] = [r0_p1[0]+rp_m2[0], r0_p1[1]+rp_m2[1]] 
-############
+B = [[-sin(θ2 ), cos(θ2)], 
+     [cos(θ2), sin(θ2)]]
 
-##Calculo mi r0 del pendulo 2
-rp_1=np.dot(A, rp_l)
-r_p1 = [r0_p1[0]+rp_1[0], r0_p1[1]+ rp_1[1]]
+C = [[-sin(θ3), cos(θ3)], 
+     [cos(θ3), sin(θ3)]]
 
-################## PENDULO 2 #######################
+######################################### PENDULO 1 ######################################
 
-rp_l=np.array([0,1])
+r0_1=[0,0]
+rp_l=Matrix([k1x*l_pendulo,k1y*0])
+rp_1=np.dot(A,rp_l)
+r_final_pendulo1=Matrix([k1x*sin(θ1),-k1x*cos(θ1)])
 
-#MARCADOR 3
-rp_l_m3=np.array([-l_m, 0.5])
-rp_m3=np.dot(np.dot(B,A), rp_l_m3)
-[x_m3, y_m3] = [r_p1[0]+rp_m3[0], r_p1[1]+rp_m3[1]] 
-###########
 
-#MARCADOR 4
-rp_l_m4=np.array([-l_m,0.9])
-rp_m4=np.dot(np.dot(B,A), rp_l_m4)
-[x_m4, y_m4] = [r_p1[0]+rp_m4[0], r_p1[1]+rp_m4[1]] 
-###########
+# M1 
+rp_l_m1_punta=Matrix([k1x*0.3,k1y*-l_m])
+rp_punta=np.dot(A, rp_l_m1_punta)
+m1_posicion=Matrix([r0_1[0]+rp_punta[0], r0_1[1]+rp_punta[1]])
 
-##Calculo mi r0 del pendulo 3
+
+# M2
+rp_l_m2_punta=Matrix([k1x*0.7,k1y*(-l_m)])                       
+rp_punta=np.dot(A, rp_l_m2_punta)
+m2_posicion=Matrix([r0_1[0]+rp_punta[0], r0_1[1]+rp_punta[1]])
+
+
+######################################### PENDULO 2 ######################################
+
+rp_l=Matrix([k2x*0,k2y*l_pendulo])
 rp_2=np.dot(np.dot(B,A), rp_l)
-r_p2 = [r_p1[0]+rp_2[0], r_p1[1]+ rp_2[1]]
+r_final_pendulo2=Matrix([r_final_pendulo1[0]+rp_2[0],r_final_pendulo1[1]+rp_2[1]])
 
-################## PENDULO 3 #######################
+# M3 
+rp_l_m3_punta=Matrix([k2x*(-l_m),k2y*0.5])                    
+rp_punta=np.dot(np.dot(B,A), rp_l_m3_punta)
+m3_posicion=Matrix([r_final_pendulo1[0]+rp_punta[0],r_final_pendulo1[1]+rp_punta[1]])
 
-rp_l=np.array([1,0])
+# M4
+rp_l_m4_punta=Matrix([k2x*(-l_m),k2y*0.9])                      
+rp_punta=np.dot(np.dot(B,A), rp_l_m4_punta)
+m4_posicion=Matrix([r_final_pendulo1[0]+rp_punta[0], r_final_pendulo1[1]+rp_punta[1]])
 
-#MARCADOR 5
-rp_l_m5=np.array([0.8,-l_m])
-rp_m5=np.dot(np.dot(np.dot(C,B),A), rp_l_m5)
-[x_m5, y_m5] = [r_p2[0]+rp_m5[0], r_p2[1]+rp_m5[1]] 
+# ############ PENDULO 3 ##############   
+rp_l=Matrix([k3x*1,k3y*0])
+rp_3=np.dot(np.dot(np.dot(C,B),A), rp_l)
 
-#####################################################
-
-θ1, θ2, θ3 = symbols('θ1 θ2 θ3', real=True)
-
-h = Matrix([
-    [0.3*sin(θ1) - 0.05*cos( θ1)],
-    [-0.05*sin(θ1) - 0.3*cos( θ1)],
-    [0.7*sin(θ1) - 0.05*cos( θ1)],
-    [-0.05*sin(θ1) - 0.7*cos( θ1)],
-    [0.05*sin(θ1)*sin( θ2) + 0.5*sin( θ1)*cos( θ2) + sin( θ1) - 0.5*sin( θ2)*cos( θ1) + 0.05*cos( θ1)*cos( θ2)],
-    [0.5*sin(θ1)*sin( θ2) - 0.05*sin( θ1)*cos( θ2) + 0.05*sin( θ2)*cos( θ1) + 0.5*cos( θ1)*cos( θ2) - cos( θ1)],
-    [0.05*sin(θ1)*sin( θ2) + 0.9*sin( θ1)*cos( θ2) + sin( θ1) - 0.9*sin( θ2)*cos( θ1) + 0.05*cos( θ1)*cos( θ2)],
-    [0.9*sin( θ1)*sin( θ2) - 0.05*sin( θ1)*cos( θ2) + 0.05*sin( θ2)*cos( θ1) + 0.9*cos( θ1)*cos( θ2) - cos( θ1)],
-    [0.8*(sin( θ2)*sin( θ3) + cos( θ2)*cos( θ3))*sin( θ1) - 0.05*(sin( θ2)*sin( θ3) + cos( θ2)*cos( θ3))*cos( θ1) - 0.05*(sin( θ2)*cos( θ3) - sin( θ3)*cos( θ2))*sin( θ1) - 0.8*(sin( θ2)*cos( θ3) - sin( θ3)*cos( θ2))*cos( θ1) + sin( θ1)*cos( θ2) + sin( θ1) - sin( θ2)*cos( θ1)],
-    [-0.05*(sin( θ2)*sin( θ3) + cos( θ2)*cos( θ3))*sin( θ1) - 0.8*(sin( θ2)*sin( θ3) + cos( θ2)*cos( θ3))*cos( θ1) + 0.8*(-sin( θ2)*cos( θ3) + sin( θ3)*cos( θ2))*sin( θ1) - 0.05*(-sin( θ2)*cos( θ3) + sin( θ3)*cos( θ2))*cos( θ1) + sin( θ1)*sin( θ2) + cos( θ1)*cos( θ2) - cos( θ1)]
-])
+#M5
+rp_l_m5_punta=Matrix([k3x*0.8,k3y*(-l_m)])
+rp_punta=np.dot(np.dot(np.dot(C,B),A), rp_l_m5_punta)
+m5_posicion=Matrix([r_final_pendulo2[0]+rp_punta[0], r_final_pendulo2[1]+rp_punta[1]])
 
 
 
-H = sp.Matrix([h]).jacobian([θ1, θ2, θ3])
+# ################################################################################################
 
-################################################################################################
+#Evaluo la derivada numerica
 
-H_e = sp.zeros(10, 3)
+H_e = sp.zeros(10, 9)
 
-valores_theta = np.array([20, 50, 30], dtype=np.float64)
+valores = np.array([1.2, 1.5, 0.75,1,1,1,1,1,1], dtype=np.float64)
+
 delta=1E-8
 
-for i in range (3):
-    valores_theta[i]+=delta
-    h_2 = np.vectorize(lambda x: x.evalf(n=20, subs={θ1: valores_theta[0], θ2: valores_theta[1], θ3: valores_theta[2]}))(h)
-    valores_theta[i]+=(-2*delta)
-    h_1 = np.vectorize(lambda x: x.evalf(n=20, subs={θ1: valores_theta[0], θ2: valores_theta[1], θ3: valores_theta[2]}))(h)
+for i in range (9):
+    valores[i]+=delta
+    h_2 = posicion_k(*valores)
+    valores[i]+=(-2*delta)
+    h_1 = posicion_k(*valores)
     H_e[:,i]=(h_2-h_1)/(2*delta)
-    valores_theta[i]+=delta
+    valores[i]+=delta
     
-H_evaluada = np.vectorize(lambda x: x.evalf(n=20, subs={θ1: valores_theta[0], θ2: valores_theta[1], θ3: valores_theta[2]}))(H)
+H_evaluada = H_k(1.2, 1.5, 0.75,1,1,1,1,1,1)
 
-dif = H_evaluada - H_e
+dif = np.array(H_evaluada - H_e, dtype=float)
 
-                            
-###################################### FILTRO DE KALMAN ##############################################
+#########################################################################•
 
-
-# theta1_p = np.gradient(theta1_copia)
-# theta2_p = np.gradient(theta2_copia)
-# theta3_p = np.gradient(theta3_copia)
+##################################### FILTRO DE KALMAN ##############################################
+from funciones import H
+from funciones import posicion
 
 delta_t=10E-2
-
 sigma_s = 10E-4
 sigma_p = 10
-
-
 
 phi =     np.array([[1, 0, 0,    delta_t, 0, 0],
                     [0, 1, 0,    0, delta_t, 0],
@@ -484,13 +468,12 @@ phi_t = phi.transpose()
 
 P = np.identity(6)
 
-
 covarianza_ruido_planta= np.array([[0.25*pow(delta_t,4), 0, 0, 0.50*pow(delta_t,3), 0, 0],
-                                   [0, 0.25*pow(delta_t,4), 0, 0, 0.50*pow(delta_t,3), 0],
-                                   [0, 0, 0.25*pow(delta_t,4), 0, 0,  0.50*pow(delta_t,3)],
-                                   [0.50*pow(delta_t,3), 0, 0, pow(delta_t,2), 0, 0],
-                                   [0, 0.50*pow(delta_t,3), 0, 0, pow(delta_t,2), 0],
-                                   [0, 0, 0.50*pow(delta_t,3), 0, 0, pow(delta_t,2)]]) * sigma_p
+                                    [0, 0.25*pow(delta_t,4), 0, 0, 0.50*pow(delta_t,3), 0],
+                                    [0, 0, 0.25*pow(delta_t,4), 0, 0,  0.50*pow(delta_t,3)],
+                                    [0.50*pow(delta_t,3), 0, 0, pow(delta_t,2), 0, 0],
+                                    [0, 0.50*pow(delta_t,3), 0, 0, pow(delta_t,2), 0],
+                                    [0, 0, 0.50*pow(delta_t,3), 0, 0, pow(delta_t,2)]]) * sigma_p
 
 
 covarianza_sensores = np.identity(10)* sigma_s
@@ -503,50 +486,22 @@ x_correc = np.array ([0,0,0,0,0,0]).reshape(-1, 1)
 for i in range (400):
     
     ## Etapa de predicción
-    
     x_predic = phi @ x_correc
     P = (phi @ P @ phi_t +  covarianza_ruido_planta).astype(np.float64)
-    
-    
+        
     # Etapa de corrección
     θ1=float(x_predic[0][0])
     θ2=float(x_predic[1][0])
     θ3=float(x_predic[2][0])
     
-    H = np.array([[0.05*np.sin(θ1) + 0.3* np.cos(θ1), 0, 0, 0, 0, 0],
-                        [0.3* np.sin(θ1) - 0.05* np.cos( θ1), 0, 0, 0, 0, 0],
-                        [0.05* np.sin( θ1) + 0.7* np.cos( θ1), 0, 0, 0, 0, 0],
-                        [0.7* np.sin(θ1) - 0.05* np.cos(θ1), 0, 0, 0, 0, 0],
-                        [0.5* np.sin(θ1)* np.sin(θ2) - 0.05* np.sin(θ1)* np.cos(θ2) + 0.05* np.sin(θ2)* np.cos(θ1) + 0.5* np.cos(θ1)* np.cos(θ2) +  np.cos(θ1), -0.5* np.sin(θ1)* np.sin(θ2) + 0.05* np.sin(θ1)* np.cos(θ2) - 0.05* np.sin(θ2)* np.cos(θ1) - 0.5* np.cos(θ1)* np.cos(θ2), 0, 0, 0, 0],                                
-                        [-0.05* np.sin(θ1)* np.sin(θ2) - 0.5* np.sin(θ1)* np.cos(θ2) +  np.sin(θ1) + 0.5* np.sin(θ2)* np.cos(θ1) - 0.05* np.cos(θ1)* np.cos(θ2), 0.05* np.sin(θ1)* np.sin(θ2) + 0.5* np.sin(θ1)* np.cos(θ2) - 0.5* np.sin(θ2)* np.cos(θ1) + 0.05* np.cos(θ1)* np.cos(θ2), 0,0,0,0],                   
-                        [0.9* np.sin(θ1)* np.sin(θ2) - 0.05* np.sin(θ1)* np.cos(θ2) + 0.05* np.sin(θ2)* np.cos(θ1) + 0.9* np.cos(θ1)* np.cos(θ2) +  np.cos(θ1), -0.9* np.sin(θ1)* np.sin(θ2) + 0.05* np.sin(θ1)* np.cos(θ2) - 0.05* np.sin(θ2)* np.cos(θ1) - 0.9* np.cos(θ1)* np.cos(θ2), 0,0,0,0],                                    
-                        [-0.05* np.sin(θ1)* np.sin(θ2) - 0.9* np.sin(θ1)* np.cos(θ2) +  np.sin(θ1) + 0.9* np.sin(θ2)* np.cos(θ1) - 0.05* np.cos(θ1)* np.cos(θ2), 0.05* np.sin(θ1)* np.sin(θ2) + 0.9* np.sin(θ1)* np.cos(θ2) - 0.9* np.sin(θ2)* np.cos(θ1) + 0.05* np.cos(θ1)* np.cos(θ2), 0, 0, 0, 0],
-                        [ (0.05* np.sin(θ2)* np.sin(θ3) + 0.05* np.cos(θ2)* np.cos(θ3))* np.sin(θ1) + (0.8* np.sin(θ2)* np.sin(θ3) + 0.8* np.cos(θ2)* np.cos(θ3))* np.cos(θ1) - (0.05* np.sin(θ2)* np.cos(θ3) - 0.05* np.sin(θ3)* np.cos(θ2))* np.cos(θ1) + (0.8* np.sin(θ2)* np.cos(θ3) - 0.8* np.sin(θ3)* np.cos(θ2))* np.sin(θ1) +  np.sin(θ1)* np.sin(θ2) +  np.cos(θ1)* np.cos(θ2) +  np.cos(θ1), -(0.05* np.sin(θ2)* np.sin(θ3) + 0.05* np.cos(θ2)* np.cos(θ3))* np.sin(θ1) - (0.8* np.sin(θ2)* np.sin(θ3) + 0.8* np.cos(θ2)* np.cos(θ3))* np.cos(θ1) + (-0.8* np.sin(θ2)* np.cos(θ3) + 0.8* np.sin(θ3)* np.cos(θ2))* np.sin(θ1) - (-0.05* np.sin(θ2)* np.cos(θ3) + 0.05* np.sin(θ3)* np.cos(θ2))* np.cos(θ1) -  np.sin(θ1)* np.sin(θ2) -  np.cos(θ1)* np.cos(θ2), -(-0.8* np.sin(θ2)* np.sin(θ3) - 0.8* np.cos(θ2)* np.cos(θ3))* np.cos(θ1) - (-0.05* np.sin(θ2)* np.sin(θ3) - 0.05* np.cos(θ2)* np.cos(θ3))* np.sin(θ1) - (0.05* np.sin(θ2)* np.cos(θ3) - 0.05* np.sin(θ3)* np.cos(θ2))* np.cos(θ1) + (0.8* np.sin(θ2)* np.cos(θ3) - 0.8* np.sin(θ3)* np.cos(θ2))* np.sin(θ1), 0, 0, 0],
-                        [ (-0.05* np.sin(θ2)* np.sin(θ3) - 0.05* np.cos(θ2)* np.cos(θ3))* np.cos(θ1) + (0.8* np.sin(θ2)* np.sin(θ3) + 0.8* np.cos(θ2)* np.cos(θ3))* np.sin(θ1) + (-0.8* np.sin(θ2)* np.cos(θ3) + 0.8* np.sin(θ3)* np.cos(θ2))* np.cos(θ1) + (-0.05* np.sin(θ2)* np.cos(θ3) + 0.05* np.sin(θ3)* np.cos(θ2))* np.sin(θ1) -  np.sin(θ1)* np.cos(θ2) +  np.sin(θ1) +  np.sin(θ2)* np.cos(θ1), (-0.8* np.sin(θ2)* np.sin(θ3) - 0.8* np.cos(θ2)* np.cos(θ3))* np.sin(θ1) - (-0.05* np.sin(θ2)* np.sin(θ3) - 0.05* np.cos(θ2)* np.cos(θ3))* np.cos(θ1) - (-0.8* np.sin(θ2)* np.cos(θ3) + 0.8* np.sin(θ3)* np.cos(θ2))* np.cos(θ1) + (0.05* np.sin(θ2)* np.cos(θ3) - 0.05* np.sin(θ3)* np.cos(θ2))* np.sin(θ1) +  np.sin(θ1)* np.cos(θ2) -  np.sin(θ2)* np.cos(θ1), -(0.05* np.sin(θ2)* np.sin(θ3) + 0.05* np.cos(θ2)* np.cos(θ3))* np.cos(θ1) + (0.8* np.sin(θ2)* np.sin(θ3) + 0.8* np.cos(θ2)* np.cos(θ3))* np.sin(θ1) + (-0.05* np.sin(θ2)* np.cos(θ3) + 0.05* np.sin(θ3)* np.cos(θ2))* np.sin(θ1) - (0.8* np.sin(θ2)* np.cos(θ3) - 0.8* np.sin(θ3)* np.cos(θ2))* np.cos(θ1), 0, 0, 0]], dtype=float)
-
+    H_kalman = H(θ1,θ2,θ3)
     #Matriz de ganancia de Kalman
-        
-    K = P @ H.transpose() @ (np.linalg.inv ((H @ P @ H.transpose()) + covarianza_sensores).astype(np.float64))
-    
-    h = Matrix([
-        [0.3* np.sin( θ1) - 0.05* np.cos( θ1)],
-        [-0.05* np.sin( θ1) - 0.3* np.cos( θ1)],
-        [0.7* np.sin( θ1) - 0.05* np.cos( θ1)],
-        [-0.05* np.sin( θ1) - 0.7* np.cos( θ1)],
-        [0.05* np.sin( θ1)* np.sin( θ2) + 0.5* np.sin( θ1)* np.cos( θ2) +  np.sin( θ1) - 0.5* np.sin( θ2)* np.cos( θ1) + 0.05* np.cos( θ1)* np.cos( θ2)],
-        [0.5* np.sin( θ1)* np.sin( θ2) - 0.05* np.sin( θ1)* np.cos( θ2) + 0.05* np.sin( θ2)* np.cos( θ1) + 0.5* np.cos( θ1)* np.cos( θ2) -  np.cos( θ1)],
-        [0.05* np.sin( θ1)* np.sin( θ2) + 0.9* np.sin( θ1)* np.cos( θ2) +  np.sin( θ1) - 0.9* np.sin( θ2)* np.cos( θ1) + 0.05* np.cos( θ1)* np.cos( θ2)],
-        [0.9* np.sin( θ1)* np.sin( θ2) - 0.05* np.sin( θ1)* np.cos( θ2) + 0.05* np.sin( θ2)* np.cos( θ1) + 0.9* np.cos( θ1)* np.cos( θ2) -  np.cos( θ1)],
-        [0.8*( np.sin( θ2)* np.sin( θ3) +  np.cos( θ2)* np.cos( θ3))* np.sin( θ1) - 0.05*( np.sin( θ2)* np.sin( θ3) +  np.cos( θ2)* np.cos( θ3))* np.cos( θ1) - 0.05*( np.sin( θ2)* np.cos( θ3) -  np.sin( θ3)* np.cos( θ2))* np.sin( θ1) - 0.8*( np.sin( θ2)* np.cos( θ3) -  np.sin( θ3)* np.cos( θ2))* np.cos( θ1) +  np.sin( θ1)* np.cos( θ2) +  np.sin( θ1) -  np.sin( θ2)* np.cos( θ1)],
-        [-0.05*( np.sin( θ2)* np.sin( θ3) +  np.cos( θ2)* np.cos( θ3))* np.sin( θ1) - 0.8*( np.sin( θ2)* np.sin( θ3) +  np.cos( θ2)* np.cos( θ3))* np.cos( θ1) + 0.8*(- np.sin( θ2)* np.cos( θ3) +  np.sin( θ3)* np.cos( θ2))* np.sin( θ1) - 0.05*(- np.sin( θ2)* np.cos( θ3) +  np.sin( θ3)* np.cos( θ2))* np.cos( θ1) +  np.sin( θ1)* np.sin( θ2) +  np.cos( θ1)* np.cos( θ2) -  np.cos( θ1)]
-    ])
-    
+    K = P @ H_kalman.transpose() @ (np.linalg.inv ((H_kalman @ P @ H_kalman.transpose()) + covarianza_sensores).astype(np.float64))
+    h_kalman = posicion(θ1,θ2,θ3)
     y=np.array ([[x_con_ruido[0][i], y_con_ruido[0][i], x_con_ruido[1][i], y_con_ruido[1][i], x_con_ruido[2][i], y_con_ruido[2][i], x_con_ruido[3][i], y_con_ruido[3][i], x_con_ruido[4][i], y_con_ruido[4][i]]])
+    x_correc = np.array (x_predic + K @ (y.reshape(-1,1) - h_kalman))
     
-    x_correc = np.array (x_predic + K @ (y.reshape(-1,1) - h))
-    
-    P = (np.identity(6)- K @ H) @ P
-    
+    P = (np.identity(6)- K @ H_kalman) @ P
     
     x_filtro[0][i]=x_correc[0]
     x_filtro[1][i]=x_correc[1]
@@ -555,41 +510,129 @@ for i in range (400):
     x_filtro[4][i]=x_correc[4]
     x_filtro[5][i]=x_correc[5]
     
-    print ("Ciclo ", i, "Valores: ", x_correc)
-    
 
 valores_originales = np.vstack((theta1_copia, theta2_copia, theta3_copia, theta1_p, theta2_p, theta3_p))
+graf.graficar_thetas_kalman(valores_originales, x_filtro )
 
-# Crear una cuadrícula de subgráficos con 3 filas y 2 columnas
-fig, axs = plt.subplots(3, 2, figsize=(10, 12))
+# ############################################# OPTIMIZACION ######################################################################
 
-# Graficar las tres primeras gráficas en la columna de la izquierda
-for i, ax in enumerate(axs[:3, 0]):
-    # Graficar la primera serie de datos (sin)
-    ax.plot(np.linspace(0, 400, 400), valores_originales[i,:], label='Valor original', color='blue')
-    # Graficar la segunda serie de datos (cos)
-    ax.plot(np.linspace(0, 400, 400), x_filtro[i,:], label='valor del filtro', color='red')
-    # Agregar leyenda al subplot
-    ax.legend()
-    # Añadir título
-    ax.set_title(f'Theta {i+1}')
+theta1_opt,theta2_opt,theta3_opt=alg.optimizar_thetas(x_con_ruido, y_con_ruido)
+graf.graficar_thetas_optimizacion(theta1_opt, theta2_opt, theta3_opt, theta1_copia, theta2_copia, theta3_copia)
 
-# Graficar las tres siguientes gráficas en la columna de la derecha
-for i, ax in enumerate(axs[:3, 1]):
-    # Graficar la primera serie de datos (sin)
-    ax.plot(np.linspace(0, 400, 400), valores_originales[i+3,:], label='valor original', color='blue')
-    # Graficar la segunda serie de datos (cos)
-    ax.plot(np.linspace(0, 400, 400), x_filtro[i+3,:], label='valor del filtro', color='red')
-    # Agregar leyenda al subplot
-    ax.legend()
-    # Añadir título
-    ax.set_title(f'Derivada Theta {i+1}')
+########################### CALCULO EL VALOR RMS #######################################
 
-# Ajustar espaciado entre subplots
-plt.tight_layout()
+def rms_difference(x, y):
+    # Calcula la diferencia entre las dos señales
+    diff = x - y
+    
+    # Calcula el valor RMS de la diferencia
+    rms = np.sqrt(np.sum(diff**2))
+    
+    return rms
 
-# Mostrar gráficas
-plt.show()
+# Ejemplo de uso
+x = np.array([1, 2, 3, 4, 5])
+y = np.array([2, 3, 4, 5, 6])
+
+theta1_filtro=x_filtro[0] # angulos segun Kalmna
+theta2_filtro=x_filtro[1] # angulos segun Kalmna
+theta3_filtro=x_filtro[2] # angulos segun Kalmna
+
+
+#THETA1
+rms_diff_filtro = rms_difference(theta1_filtro[20:], theta1_copia[20:])
+rms_diff_opt = rms_difference(theta1_opt, theta1_copia)
+rms_diff_filtro_opt = rms_difference(theta1_filtro[20:], theta1_opt[20:])
+
+
+print("THETA 1")
+print("Valor RMS de la diferencia entre la señal original y la obtenida por Kalman:", rms_diff_filtro)
+print("Valor RMS de la diferencia entre la señal original y la obtenida por Optimización:", rms_diff_opt)
+print("Valor RMS de la diferencia entre las señales obtenidas por Kalman y Optimización:", rms_diff_filtro_opt)
+
+#THETA2
+rms_diff_filtro = rms_difference(theta2_filtro[20:], theta2_copia[20:])
+rms_diff_opt = rms_difference(theta2_opt, theta2_copia)
+rms_diff_filtro_opt = rms_difference(theta2_filtro[20:], theta2_opt[20:])
+
+print("THETA 2")
+print("Valor RMS de la diferencia entre la señal original y la obtenida por Kalman:", rms_diff_filtro)
+print("Valor RMS de la diferencia entre la señal original y la obtenida por Optimización:", rms_diff_opt)
+print("Valor RMS de la diferencia entre las señales obtenidas por Kalman y Optimización:", rms_diff_filtro_opt)
+
+#THETA3
+rms_diff_filtro = rms_difference(theta3_filtro[20:], theta3_copia[20:])
+rms_diff_opt = rms_difference(theta3_opt, theta3_copia)
+rms_diff_filtro_opt = rms_difference(theta3_filtro[20:], theta3_opt[20:])
+
+print("THETA 3")
+print("Valor RMS de la diferencia entre la señal original y la obtenida por Kalman:", rms_diff_filtro)
+print("Valor RMS de la diferencia entre la señal original y la obtenida por Optimización:", rms_diff_opt)
+print("Valor RMS de la diferencia entre las señales obtenidas por Kalman y Optimización:", rms_diff_filtro_opt)
+
+#########################################################################################################################
+
+#Optimizacion con factores de escala
+from funciones import H
+from funciones import posicion
+from funciones import posicion_k
+from funciones import H_k
+
+x = np.linspace(0, 400, 400)
+def position_function(θ1, θ2, θ3, k1x, k1y, k2x, k2y, k3x, k3y):
+
+    h_k = posicion_k(θ1, θ2, θ3, k1x, k1y, k2x, k2y, k3x, k3y)
+        
+    return h_k
+
+def jacobian(params, x, y):
+    
+    θ1, θ2, θ3, k1x, k1y, k2x, k2y, k3x, k3y = params
+
+    jac = H_k(θ1, θ2, θ3, k1x, k1y, k2x, k2y, k3x, k3y)
+    
+    return jac
+
+
+# Definimos la función de error
+def error_function(params, x, y_observed):
+    
+    θ1, θ2, θ3, k1x, k1y, k2x, k2y, k3x, k3y = params
+    
+    y_predicted = np.squeeze(position_function(θ1, θ2, θ3, k1x, k1y, k2x, k2y, k3x, k3y))
+        
+    return np.squeeze(y_predicted - y_observed)
+
+initial_guess = [0.5,0.5,0.5,1,1,1,1,1,1]
+
+theta_opt= []
+k_opt = []
+
+for i in range (400):
+    y_observed=np.array([x_con_ruido [0,i], y_con_ruido [0,i], x_con_ruido [1,i], y_con_ruido [1,i], x_con_ruido [2,i], y_con_ruido [2,i], x_con_ruido [3,i], y_con_ruido [3,i],  x_con_ruido [4, i], y_con_ruido [4,i]])
+    result = least_squares(error_function, initial_guess, method='lm', args=(x, y_observed))
+    initial_guess=result.x
+    theta_opt.append(result.x[:3])
+    k_opt.append(result.x[3:])
+    print (i)
+
+
+promedios = []
+
+# Itera sobre el rango de las columnas
+for i in range(len(k_opt[0])):
+    # Extrae la columna i
+    columna_i = [fila[i] for fila in k_opt]
+    # Calcula el promedio de la columna i
+    promedio_i = sum(columna_i) / len(columna_i)
+    # Agrega el promedio a la lista de promedios
+    promedios.append(promedio_i)
+
+# Imprime los promedios
+for i, promedio in enumerate(promedios):
+    print(f"Promedio de k{i+1}_opt:", promedio)
+
+
 
 
 
