@@ -36,14 +36,14 @@ omega = 1*np.pi  # Frecuencia angular (en este caso, una vuelta completa cada un
 # Vector de tiempo
 t = np.linspace(0, 4, 400)  # Desde 0 hasta 10 con 400 puntos
 # Función de ángulo
-phi = np.pi / 4  # Desplazamiento en omega t (en radianes)
+phi = np.pi / 2  # Desplazamiento en omega t (en radianes)
 theta2 = a * a * np.cos(omega * t + phi) + b
 theta2_copia=copy.copy(theta2)
 
 ############ THETA 3 ############
 # Parámetros
-a = 2  # Amplitud
-b = 1 # Desplazamiento vertical
+a = 0.5  # Amplitud
+b = 0 # Desplazamiento vertical
 omega = 1*np.pi  # Frecuencia angular (en este caso, una vuelta completa cada unidad de tiempo)
 # Vector de tiempo
 t = np.linspace(0, 4, 400)  # Desde 0 hasta 10 con 400 puntos
@@ -355,8 +355,6 @@ theta2_p = np.insert(theta2_p, 0, theta2_p[0])
 theta3_p=np.diff(theta3_copia) / 10E-2
 theta3_p = np.insert(theta3_p, 0, theta3_p[0])
 
-
-
 ####################################################################################################################
 
 #ECUACIONES DE POSICION DEL MARCADOR
@@ -383,7 +381,7 @@ C = [[-sin(θ3), cos(θ3)],
 r0_1=[0,0]
 rp_l=Matrix([k1x*l_pendulo,k1y*0])
 rp_1=np.dot(A,rp_l)
-r_final_pendulo1=Matrix([k1x*sin(θ1),-k1x*cos(θ1)])
+r_final_pendulo1=Matrix([k1x*sin(θ1),-k1y*cos(θ1)])
 
 
 # M1 
@@ -423,6 +421,51 @@ rp_l_m5_punta=Matrix([k3x*0.8,k3y*(-l_m)])
 rp_punta=np.dot(np.dot(np.dot(C,B),A), rp_l_m5_punta)
 m5_posicion=Matrix([r_final_pendulo2[0]+rp_punta[0], r_final_pendulo2[1]+rp_punta[1]])
 
+
+
+#################################################################################################
+
+
+# h_k = Matrix([
+        
+#         #m1
+#         [0.3*k1x*sin(θ1) - 0.05*k1y*cos(θ1)],
+#         [-0.3*k1x*cos(θ1) - 0.05*k1y*sin(θ1)],
+#         #m2
+#         [0.7*k1x*sin(θ1) - 0.05*k1y*cos(θ1)],
+#         [-0.7*k1x*cos(θ1) - 0.05*k1y*sin(θ1)],        
+#         #m3
+#         [k1x*sin(θ1) - 0.05*k2x*(-sin(θ1)*sin(θ2) - cos(θ1)*cos(θ2)) + 0.5*k2y*(sin(θ1)*cos(θ2) - sin(θ2)*cos(θ1))],
+#         [-k1y*cos(θ1) - 0.05*k2x*(sin(θ1)*cos(θ2) - sin(θ2)*cos(θ1)) + 0.5*k2y*(sin(θ1)*sin(θ2) + cos(θ1)*cos(θ2))],         
+#         #m4
+#         [k1x*sin(θ1) - 0.05*k2x*(-sin(θ1)*sin(θ2) - cos(θ1)*cos(θ2)) + 0.9*k2y*(sin(θ1)*cos(θ2) - sin(θ2)*cos(θ1))],
+#         [-k1y*cos(θ1) - 0.05*k2x*(sin(θ1)*cos(θ2) - sin(θ2)*cos(θ1)) + 0.9*k2y*(sin(θ1)*sin(θ2) + cos(θ1)*cos(θ2))],
+#         #m5
+#         [k1x*sin(θ1) + k2y*(sin(θ1)*cos(θ2) - sin(θ2)*cos(θ1)) + 0.8*k3x*((sin(θ2)*sin(θ3) + cos(θ2)*cos(θ3))*sin(θ1) - (sin(θ2)*cos(θ3) - sin(θ3)*cos(θ2))*cos(θ1)) - 0.05*k3y*((sin(θ2)*sin(θ3) + cos(θ2)*cos(θ3))*cos(θ1) + (sin(θ2)*cos(θ3) - sin(θ3)*cos(θ2))*sin(θ1))],
+#         [-k1y*cos(θ1) + k2y*(sin(θ1)*sin(θ2) + cos(θ1)*cos(θ2)) + 0.8*k3x*(-(sin(θ2)*sin(θ3) + cos(θ2)*cos(θ3))*cos(θ1) + (-sin(θ2)*cos(θ3) + sin(θ3)*cos(θ2))*sin(θ1)) - 0.05*k3y*((sin(θ2)*sin(θ3) + cos(θ2)*cos(θ3))*sin(θ1) + (-sin(θ2)*cos(θ3) + sin(θ3)*cos(θ2))*cos(θ1))]
+#         ])
+
+
+# jacobian_matrix = h_k.jacobian([θ1, θ2, θ3, k1x, k1y, k2x, k2y, k3x, k3y])
+
+# H_k = Matrix([
+        
+#         #m1
+#         [0.3*k1x*cos(θ1) + 0.05*k1y*sin(θ1), 0, 0, 0.3*sin(θ1), -0.05*cos(θ1), 0, 0, 0, 0],
+#         [0.3*k1x*sin(θ1) - 0.05*k1y*cos(θ1), 0, 0, -0.3*cos(θ1), -0.05*sin(θ1), 0, 0, 0, 0],
+#         #m2
+#         [0.7*k1x*cos(θ1) + 0.05*k1y*sin(θ1), 0, 0, 0.7*sin(θ1), -0.05*cos(θ1), 0, 0, 0, 0],
+#         [0.7*k1x*sin(θ1) - 0.05*k1y*cos(θ1), 0, 0, -0.7*cos(θ1), -0.05*sin(θ1), 0, 0, 0, 0],        
+#         #m3
+#         [k1x*cos(θ1) - 0.05*k2x*(sin(θ1)*cos(θ2) - sin(θ2)*cos(θ1)) + 0.5*k2y*(sin(θ1)*sin(θ2) + cos(θ1)*cos(θ2)), -0.05*k2x*(-sin(θ1)*cos(θ2) + sin(θ2)*cos(θ1)) + 0.5*k2y*(-sin(θ1)*sin(θ2) - cos(θ1)*cos(θ2)), 0, sin(θ1), 0, 0.05*sin(θ1)*sin(θ2) + 0.05*cos(θ1)*cos(θ2), 0.5*sin(θ1)*cos(θ2) - 0.5*sin(θ2)*cos(θ1), 0, 0],
+#         [k1y*sin(θ1) - 0.05*k2x*(sin(θ1)*sin(θ2) + cos(θ1)*cos(θ2)) + 0.5*k2y*(-sin(θ1)*cos(θ2) + sin(θ2)*cos(θ1)), -0.05*k2x*(-sin(θ1)*sin(θ2) - cos(θ1)*cos(θ2)) + 0.5*k2y*(sin(θ1)*cos(θ2) - sin(θ2)*cos(θ1)), 0, 0, -cos(θ1), -0.05*sin(θ1)*cos(θ2) + 0.05*sin(θ2)*cos(θ1), 0.5*sin(θ1)*sin(θ2) + 0.5*cos(θ1)*cos(θ2), 0, 0],         
+#         #m4
+#         [k1x*cos(θ1) - 0.05*k2x*(sin(θ1)*cos(θ2) - sin(θ2)*cos(θ1)) + 0.9*k2y*(sin(θ1)*sin(θ2) + cos(θ1)*cos(θ2)), -0.05*k2x*(-sin(θ1)*cos(θ2) + sin(θ2)*cos(θ1)) + 0.9*k2y*(-sin(θ1)*sin(θ2) - cos(θ1)*cos(θ2)), 0, sin(θ1), 0, 0.05*sin(θ1)*sin(θ2) + 0.05*cos(θ1)*cos(θ2), 0.9*sin(θ1)*cos(θ2) - 0.9*sin(θ2)*cos(θ1), 0, 0],
+#         [k1y*sin(θ1) - 0.05*k2x*(sin(θ1)*sin(θ2) + cos(θ1)*cos(θ2)) + 0.9*k2y*(-sin(θ1)*cos(θ2) + sin(θ2)*cos(θ1)), -0.05*k2x*(-sin(θ1)*sin(θ2) - cos(θ1)*cos(θ2)) + 0.9*k2y*(sin(θ1)*cos(θ2) - sin(θ2)*cos(θ1)), 0, 0, -cos(θ1), -0.05*sin(θ1)*cos(θ2) + 0.05*sin(θ2)*cos(θ1), 0.9*sin(θ1)*sin(θ2) + 0.9*cos(θ1)*cos(θ2), 0, 0],
+#         #m5
+#         [k1x*cos(θ1) + k2y*(sin(θ1)*sin(θ2) + cos(θ1)*cos(θ2)) + 0.8*k3x*((sin(θ2)*sin(θ3) + cos(θ2)*cos(θ3))*cos(θ1) + (sin(θ2)*cos(θ3) - sin(θ3)*cos(θ2))*sin(θ1)) - 0.05*k3y*(-(sin(θ2)*sin(θ3) + cos(θ2)*cos(θ3))*sin(θ1) + (sin(θ2)*cos(θ3) - sin(θ3)*cos(θ2))*cos(θ1)), k2y*(-sin(θ1)*sin(θ2) - cos(θ1)*cos(θ2)) + 0.8*k3x*(-(sin(θ2)*sin(θ3) + cos(θ2)*cos(θ3))*cos(θ1) + (-sin(θ2)*cos(θ3) + sin(θ3)*cos(θ2))*sin(θ1)) - 0.05*k3y*((sin(θ2)*sin(θ3) + cos(θ2)*cos(θ3))*sin(θ1) + (-sin(θ2)*cos(θ3) + sin(θ3)*cos(θ2))*cos(θ1)), 0.8*k3x*(-(-sin(θ2)*sin(θ3) - cos(θ2)*cos(θ3))*cos(θ1) + (sin(θ2)*cos(θ3) - sin(θ3)*cos(θ2))*sin(θ1)) - 0.05*k3y*((-sin(θ2)*sin(θ3) - cos(θ2)*cos(θ3))*sin(θ1) + (sin(θ2)*cos(θ3) - sin(θ3)*cos(θ2))*cos(θ1)), sin(θ1), 0, 0, sin(θ1)*cos(θ2) - sin(θ2)*cos(θ1), 0.8*(sin(θ2)*sin(θ3) + cos(θ2)*cos(θ3))*sin(θ1) - 0.8*(sin(θ2)*cos(θ3) - sin(θ3)*cos(θ2))*cos(θ1), -0.05*(sin(θ2)*sin(θ3) + cos(θ2)*cos(θ3))*cos(θ1) - 0.05*(sin(θ2)*cos(θ3) - sin(θ3)*cos(θ2))*sin(θ1)],
+#         [k1y*sin(θ1) + k2y*(-sin(θ1)*cos(θ2) + sin(θ2)*cos(θ1)) + 0.8*k3x*(-(-sin(θ2)*sin(θ3) - cos(θ2)*cos(θ3))*sin(θ1) + (-sin(θ2)*cos(θ3) + sin(θ3)*cos(θ2))*cos(θ1)) - 0.05*k3y*((sin(θ2)*sin(θ3) + cos(θ2)*cos(θ3))*cos(θ1) - (-sin(θ2)*cos(θ3) + sin(θ3)*cos(θ2))*sin(θ1)), k2y*(sin(θ1)*cos(θ2) - sin(θ2)*cos(θ1)) + 0.8*k3x*((-sin(θ2)*sin(θ3) - cos(θ2)*cos(θ3))*sin(θ1) + (sin(θ2)*cos(θ3) - sin(θ3)*cos(θ2))*cos(θ1)) - 0.05*k3y*((-sin(θ2)*sin(θ3) - cos(θ2)*cos(θ3))*cos(θ1) + (-sin(θ2)*cos(θ3) + sin(θ3)*cos(θ2))*sin(θ1)), 0.8*k3x*((sin(θ2)*sin(θ3) + cos(θ2)*cos(θ3))*sin(θ1) + (-sin(θ2)*cos(θ3) + sin(θ3)*cos(θ2))*cos(θ1)) - 0.05*k3y*((sin(θ2)*sin(θ3) + cos(θ2)*cos(θ3))*cos(θ1) + (sin(θ2)*cos(θ3) - sin(θ3)*cos(θ2))*sin(θ1)), 0, -cos(θ1), 0, sin(θ1)*sin(θ2) + cos(θ1)*cos(θ2), 0.8*(-sin(θ2)*sin(θ3) - cos(θ2)*cos(θ3))*cos(θ1) + 0.8*(-sin(θ2)*cos(θ3) + sin(θ3)*cos(θ2))*sin(θ1), -0.05*(sin(θ2)*sin(θ3) + cos(θ2)*cos(θ3))*sin(θ1) - 0.05*(-sin(θ2)*cos(θ3) + sin(θ3)*cos(θ2))*cos(θ1)]
+#         ])
 
 
 # ################################################################################################
@@ -603,7 +646,7 @@ def error_function(params, x, y_observed):
         
     return np.squeeze(y_predicted - y_observed)
 
-initial_guess = [0.5,0.5,0.5,1,1,1,1,1,1]
+initial_guess = [0.3,0.3,0.3,1,1,1,1,1,1]
 
 theta_opt= []
 k_opt = []
