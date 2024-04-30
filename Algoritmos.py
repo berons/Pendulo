@@ -24,6 +24,7 @@ def optimizar_thetas(x_con_ruido, y_con_ruido):
     def error_function(params, x, y_observed):
         θ1, θ2, θ3 = params
         y_predicted = position_function(θ1, θ2, θ3)
+        #y_predicted = position_function(*params)
         return np.squeeze(y_predicted - y_observed)
     
     def jacobian(params, x, y):
