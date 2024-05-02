@@ -14,6 +14,11 @@ import Algoritmos as alg
 import Graficador as graf
 import funciones as f
 
+import time
+from scipy.sparse import csr_matrix
+from scipy.sparse import coo_matrix
+
+
 ############################## GENERO ANGULOS ###############################################
 
 ############ THETA 1 ############
@@ -737,86 +742,112 @@ from funciones import posicion_k
 from funciones import H_k
 
 x = np.linspace(0, 400, 400)
+j=np.zeros((4000, 1205))
+casero=np.zeros((4000, 1205))
 
+# def jacobian(params, y_observed):
+   
+    # global j, casero
+    # H_total = np.zeros((4000, 1205))
+    
+    # for i in range (400):
+        
+    #     xi = np.concatenate((params[3*i:3*i+3], params[-5:]))
+    #     H_total[10*i:10*(i+1),3*i:3*(i+1)]=H_k(*xi)[:,:3]
+    #     H_total[10*i:10*(i+1),-5:] =H_k(*xi)[:,-5:]
+
+    # j=H_total
+    
 def jacobian(params, y_observed):
-   
-    H_total = np.array([]) 
-   
+
+    fila=[]
+    columna=[]
+    valor=[]
     
     for i in range (400):
         
         xi = np.concatenate((params[3*i:3*i+3], params[-5:]))
+        jac=H_k(*xi)
+        angulos=jac[:,:3]
+        factores=jac[:,-5:]
+ 
+        for f in range (10):
+            for c in range (3): 
+                if angulos[f,c]!=0:
+                    fila.append(f+(10*i))
+                    columna.append(c+(3*i))
+                    valor.append(angulos[f,c])
+                    
+            for k in range (5):
+                if factores[f,k]!=0:
+                    fila.append(f+(10*i))
+                    columna.append(1200+k)
+                    valor.append(factores[f,k])
+                    
+    columna = np.array(columna)
+    fila = np.array(fila)
+    valor = np.array(valor)
+    matriz_dispersa = coo_matrix((valor, (fila, columna)))
         
-        #Evaluo jac
-        jac_frame_i=H_k(*xi)
-        
-        print ("H_k evaluado")
-        print (H_k(*xi).shape)
-        
-        if i > 0 and i < 400:
-            vector_ceros_izq = np.zeros((10, i-1))
-            vector_ceros_der = np.zeros((10, 400-i))
-            frame_i = np.column_stack((vector_ceros_izq, jac_frame_i, vector_ceros_der))
-            
-        elif i == 0:
-            vector_ceros_der = np.zeros((10, 399-i))
-            frame_i = np.column_stack((jac_frame_i, vector_ceros_der))
-            
-        elif i == 399:
-            vector_ceros_izq = np.zeros((10, i-1))
-            frame_i = np.column_stack((vector_ceros_izq, jac_frame_i))
-            
-        print ("H_k evaluado")
-        print (frame_i.shape)
-            
-        H_total=np.concatenate((H_total,frame_i))    
-    
-    return H_total
+    return matriz_dispersa
+
 
 
 # Definimos la función de error
-
-def error_function(params, y_observed):
+def calcular_y_predicted(params):
     
     y_predicted = np.zeros(4000)
-
+    
     for i in range(400):
-      # Extraemos los 3 ángulos del frame actual, y añadimos las 5 escalas al final
       xi = np.concatenate((params[3*i:3*i+3], params[-5:]))
-
-      # Evaluamos 'h' para esos ángulos y escalas, y colocamos el resultado en 'out'
       y_predicted[10*i:10*i+10] = np.squeeze(posicion_k(*xi))
-      
-    return y_predicted - y_observed
+     
+    return y_predicted
+        
+y_observed = np.zeros(4000)
+for i in range(400):   # Recorremos los frames
+    for j in range(5): # Recorremos los markers
+        y_observed[10*i+2*j] = x_con_ruido[j, i]
+        y_observed[10*i+2*j+1] = y_con_ruido[j, i]
 
-
-#Calculo el vector y_observed
-y_observed = np.array([])
-for i in range(0, 400):
-    # Concatenamos los valores correspondientes a la columna i de x_con_ruido e y_con_ruido
-    y_observed_temp = np.array([x_con_ruido[0, i], y_con_ruido[0, i], x_con_ruido[1, i], y_con_ruido[1, i], x_con_ruido[2, i], y_con_ruido[2, i], x_con_ruido[3, i], y_con_ruido[3, i], x_con_ruido[4, i], y_con_ruido[4, i]])
-    # Concatenamos el nuevo vector a y
-    y_observed = np.concatenate((y_observed, y_observed_temp))
     
 #Calculo el vector initial guess
 initial_guess=np.zeros(1205)
-for i in range (400):
-    initial_guess[i*3]=theta1[i]
-    initial_guess[i*3+1]=theta2[i]
-    initial_guess[i*3+2]=theta3[i]
+# for i in range (400):
+#     initial_guess[i*3]=theta1[i]
+#     initial_guess[i*3+1]=theta2[i]
+#     initial_guess[i*3+2]=theta3[i]
 for i in range (5):
+    #lleno de 1 el lugar correspondiente a las constantes
     initial_guess[1200+i]=1
+
+
+def error_function(params, y_observed):
     
+    global iteration_count
+    iteration_count += 1
+    #print("Iteración en error_function:", iteration_count)
+    y_predicted=calcular_y_predicted(params)
+    res=y_predicted-y_observed
+    print (np.sqrt(np.vdot(res, res)/res.size))
+    return (y_predicted - y_observed)
 
-result = least_squares(error_function, initial_guess, jac=jacobian, method='trf', args=(y_observed,))
+iteration_count=0
+
+inicio = time.time()
+
+result = least_squares(error_function, initial_guess, jac=jacobian, method='dogbox', args=(y_observed,),max_nfev=100)
+
+fin = time.time()
+tiempo_transcurrido = fin - inicio
+print("Tiempo transcurrido:", tiempo_transcurrido, "segundos")
 
 
+# print (result.x)
+p=result.x
 
-initial_guess=result.x
-theta_opt.append(result.x[:3])
-k_opt.append(result.x[3:])
-print (i)
-
-
-promedios = []
+# matriz_dispersa = csr_matrix(j)
+# ver = matriz_dispersa.toarray()
+# print("Matriz dispersa CSR:")
+# print(matriz_dispersa.nnz)
 
